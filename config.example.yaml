@@ -53,7 +53,9 @@ detectors:
 notifiers: ["smtp"]
 
 smtp:
-  enabled: true
+  # Off by default so a fresh copy of this file doesn't try to email through
+  # the placeholder host below. Fill in real values and flip this to true.
+  enabled: false
   host: "smtp.example.com"
   port: 587
   use_tls: true
