@@ -1,6 +1,6 @@
 # PoisonHound
 
-[![CI](https://github.com/yourusername/poisonhound/actions/workflows/ci.yaml/badge.svg)](https://github.com/yourusername/poisonhound/actions/workflows/ci.yaml)
+[![CI](https://github.com/sergenbiltekin/poisonhound/actions/workflows/ci.yaml/badge.svg)](https://github.com/sergenbiltekin/poisonhound/actions/workflows/ci.yaml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
@@ -44,7 +44,7 @@ Requires Python 3.10+ and, since packet capture needs raw sockets:
   API-compatible mode" during setup) and run from an elevated prompt.
 
 ```bash
-git clone https://github.com/yourusername/poisonhound.git
+git clone https://github.com/sergenbiltekin/poisonhound.git
 cd poisonhound
 pip install -e .
 ```

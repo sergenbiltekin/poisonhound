@@ -5,7 +5,7 @@ Thanks for considering a contribution to PoisonHound.
 ## Getting set up
 
 ```bash
-git clone https://github.com/yourusername/poisonhound.git
+git clone https://github.com/sergenbiltekin/poisonhound.git
 cd poisonhound
 python -m venv .venv
 source .venv/bin/activate  # or .venv\Scripts\activate on Windows
