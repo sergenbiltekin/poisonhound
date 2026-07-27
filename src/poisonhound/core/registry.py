@@ -31,7 +31,9 @@ def build_enabled_detectors(
     detectors: list[BaseDetector] = []
 
     if config.arp_spoof.enabled:
-        detectors.append(ArpSpoofDetector(config.arp_spoof, on_alert, mac_directory=mac_directory))
+        detectors.append(
+            ArpSpoofDetector(config.arp_spoof, on_alert, mac_directory=mac_directory, iface=iface)
+        )
     else:
         logger.info("arp_spoof detector disabled by config")
 

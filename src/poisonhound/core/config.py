@@ -33,7 +33,10 @@ class RateLimitConfig(BaseModel):
 
 class ArpSpoofConfig(BaseModel):
     enabled: bool = True
-    gateway_ip: str
+    # If left null, PoisonHound auto-detects the default gateway for
+    # `interface` at startup (see net/gateway.py) and errors out clearly if
+    # that fails, rather than silently watching the wrong IP.
+    gateway_ip: str | None = None
     known_gateway_mac: str | None = None
     check_interval_seconds: int = 5
 
@@ -105,7 +108,10 @@ class SmtpConfig(BaseModel):
 
 class DashboardConfig(BaseModel):
     enabled: bool = False
-    host: str = "127.0.0.1"
+    # Bound to all interfaces by default so the dashboard is reachable from
+    # other devices out of the box; it's still protected by a login page,
+    # but set this back to "127.0.0.1" if you want it local-only.
+    host: str = "0.0.0.0"
     port: int = 8787
     username: str = "admin"
     password: str | None = None

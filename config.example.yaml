@@ -19,7 +19,10 @@ rate_limit:
 detectors:
   arp_spoof:
     enabled: true
-    gateway_ip: "192.168.1.1"
+    # If left null, PoisonHound auto-detects the default gateway for
+    # `interface` above at startup, and refuses to start if that fails -
+    # set this explicitly if auto-detection doesn't work for your setup.
+    gateway_ip: null
     # If left null, the first MAC seen for gateway_ip is learned as the
     # baseline and an INFO alert is raised so you know it happened.
     known_gateway_mac: null
@@ -71,7 +74,10 @@ smtp:
 # notifier without a restart. Disabled by default.
 dashboard:
   enabled: false
-  host: "127.0.0.1" # keep this on localhost unless you understand the risk
+  # Bound to all interfaces by default so it's reachable from other devices
+  # out of the box - it's still login-protected, but set this to
+  # "127.0.0.1" instead if you want it reachable from this machine only.
+  host: "0.0.0.0"
   port: 8787
   username: "admin"
   # Leave blank and set PH_DASHBOARD__PASSWORD instead, or a random

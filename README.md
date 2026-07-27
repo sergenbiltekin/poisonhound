@@ -83,7 +83,7 @@ Key fields:
 | Field | Purpose |
 |---|---|
 | `interface` | Network interface to listen on (e.g. `eth0`, `Ethernet`). |
-| `detectors.arp_spoof.gateway_ip` / `known_gateway_mac` | Your gateway's IP and (optionally) its real MAC; leave the MAC unset to auto-learn it on first run. |
+| `detectors.arp_spoof.gateway_ip` / `known_gateway_mac` | Leave `gateway_ip` unset to auto-detect it from `interface`'s routing table at startup (PoisonHound refuses to start if that fails - set it explicitly if needed); leave the MAC unset to auto-learn it on first run. |
 | `detectors.rogue_dhcp.authorized_servers` | IPs/MACs of your legitimate DHCP server(s). |
 | `detectors.ipv6_rogue_ra.authorized_routers` / `authorized_dhcpv6_servers` | Link-local addresses of your legitimate IPv6 routers/DHCPv6 servers. |
 | `detectors.name_resolution_canary` | Tuning for the active LLMNR/mDNS/NBT-NS canary queries. |
@@ -117,7 +117,10 @@ Windows).
 ## Web dashboard
 
 Set `dashboard.enabled: true` in `config.yaml` to get a local web UI at
-`http://127.0.0.1:8787` (bound to localhost only, by design) with:
+`http://<this-machine's-ip>:8787`. It's bound to all interfaces
+(`dashboard.host: "0.0.0.0"`) by default so it's reachable from other
+devices out of the box - set `dashboard.host` back to `"127.0.0.1"` if you'd
+rather it only be reachable from the machine PoisonHound runs on.
 
 - An alert history view, backed by SQLite (`dashboard.db_path`), filterable
   by severity, with full evidence/remediation on each alert's detail page.

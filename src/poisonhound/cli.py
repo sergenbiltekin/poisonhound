@@ -9,7 +9,8 @@ import sys
 import threading
 
 from poisonhound.app import PoisonHoundApp
-from poisonhound.core.exceptions import ConfigError
+from poisonhound.core.config_loader import load_config
+from poisonhound.core.exceptions import PoisonHoundError
 from poisonhound.logging_setup import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -39,12 +40,21 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        app = PoisonHoundApp.from_config_file(args.config)
-    except ConfigError as exc:
-        print(f"Configuration error: {exc}", file=sys.stderr)
+        config = load_config(args.config)
+    except PoisonHoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         return 2
 
-    configure_logging(app.config.logging)
+    # Configured before constructing PoisonHoundApp so that anything logged
+    # during detector setup (e.g. auto-detected gateway IP) is visible
+    # instead of silently vanishing to the pre-configured root logger.
+    configure_logging(config.logging)
+
+    try:
+        app = PoisonHoundApp(config, config_path=args.config)
+    except PoisonHoundError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 2
 
     if args.check_config:
         print(f"Configuration OK: {args.config}")

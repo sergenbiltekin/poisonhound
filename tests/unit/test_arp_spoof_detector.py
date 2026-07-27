@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
+import pytest
 from scapy.layers.l2 import ARP, Ether
 
 from poisonhound.core.alert import Alert, Severity
 from poisonhound.core.config import ArpSpoofConfig
+from poisonhound.core.exceptions import DetectorError
 from poisonhound.core.mac_directory import MacDirectory
 from poisonhound.detectors.arp_spoof import ArpSpoofDetector
 
@@ -130,3 +134,69 @@ def test_alert_works_without_a_mac_directory_at_all(collected_alerts: list[Alert
 
     assert len(collected_alerts) == 1
     assert collected_alerts[0].evidence["known_ip_for_claimed_mac"] is None
+
+
+def test_uses_auto_detected_gateway_when_gateway_ip_not_configured(
+    collected_alerts: list[Alert],
+) -> None:
+    config = ArpSpoofConfig(gateway_ip=None, known_gateway_mac="aa:bb:cc:00:00:01")
+
+    with patch(
+        "poisonhound.detectors.arp_spoof.detect_default_gateway", return_value="10.0.0.1"
+    ) as mock_detect:
+        detector = ArpSpoofDetector(config, on_alert=collected_alerts.append, iface="eth0")
+
+    mock_detect.assert_called_once_with("eth0")
+    assert detector.gateway_ip == "10.0.0.1"
+
+    detector.handle_packet(_arp_reply("10.0.0.1", "de:ad:be:ef:00:01"))
+    assert len(collected_alerts) == 1
+
+
+def test_raises_when_gateway_ip_unset_and_auto_detect_fails(
+    collected_alerts: list[Alert],
+) -> None:
+    config = ArpSpoofConfig(gateway_ip=None)
+
+    with patch(
+        "poisonhound.detectors.arp_spoof.detect_default_gateway", return_value=None
+    ):
+        with pytest.raises(DetectorError):
+            ArpSpoofDetector(config, on_alert=collected_alerts.append, iface="eth0")
+
+
+def test_explicit_gateway_ip_skips_auto_detection(collected_alerts: list[Alert]) -> None:
+    config = ArpSpoofConfig(gateway_ip=GATEWAY_IP)
+
+    with patch("poisonhound.detectors.arp_spoof.detect_default_gateway") as mock_detect:
+        detector = ArpSpoofDetector(config, on_alert=collected_alerts.append, iface="eth0")
+
+    mock_detect.assert_not_called()
+    assert detector.gateway_ip == GATEWAY_IP
+
+
+def test_hot_reload_without_gateway_ip_keeps_the_auto_detected_value(
+    collected_alerts: list[Alert],
+) -> None:
+    config = ArpSpoofConfig(gateway_ip=None)
+    with patch(
+        "poisonhound.detectors.arp_spoof.detect_default_gateway", return_value="10.0.0.1"
+    ):
+        detector = ArpSpoofDetector(config, on_alert=collected_alerts.append, iface="eth0")
+
+    # simulate app.py's reload_config() swapping in a freshly-loaded config
+    # that still has gateway_ip unset
+    detector.config = ArpSpoofConfig(gateway_ip=None)
+
+    assert detector.gateway_ip == "10.0.0.1"
+
+
+def test_hot_reload_with_new_gateway_ip_takes_effect_immediately(
+    collected_alerts: list[Alert],
+) -> None:
+    config = ArpSpoofConfig(gateway_ip=GATEWAY_IP)
+    detector = ArpSpoofDetector(config, on_alert=collected_alerts.append, iface="eth0")
+
+    detector.config = ArpSpoofConfig(gateway_ip="10.0.0.99")
+
+    assert detector.gateway_ip == "10.0.0.99"

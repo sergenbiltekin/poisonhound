@@ -11,8 +11,10 @@ from scapy.packet import Packet
 from poisonhound.core.alert import Alert, Severity
 from poisonhound.core.config import ArpSpoofConfig
 from poisonhound.core.detector import BaseDetector
+from poisonhound.core.exceptions import DetectorError
 from poisonhound.core.mac_directory import MacDirectory
 from poisonhound.net.evidence import build_evidence
+from poisonhound.net.gateway import detect_default_gateway
 from poisonhound.net.oui_lookup import lookup_vendor
 
 logger = logging.getLogger(__name__)
@@ -42,13 +44,36 @@ class ArpSpoofDetector(BaseDetector):
         config: ArpSpoofConfig,
         on_alert: Callable[[Alert], None],
         mac_directory: MacDirectory | None = None,
+        iface: str | None = None,
     ) -> None:
         super().__init__(on_alert)
         self.config = config
         self._mac_directory = mac_directory
+        self._iface = iface
+        self._resolved_gateway_ip = config.gateway_ip or self._auto_detect_gateway_ip()
         self._baseline_mac: str | None = (
             config.known_gateway_mac.lower() if config.known_gateway_mac else None
         )
+
+    def _auto_detect_gateway_ip(self) -> str:
+        detected = detect_default_gateway(self._iface) if self._iface else None
+        if not detected:
+            raise DetectorError(
+                "arp_spoof: gateway_ip is not set and could not be auto-detected for "
+                f"interface '{self._iface}'. Set detectors.arp_spoof.gateway_ip in "
+                "config.yaml manually."
+            )
+        logger.info(
+            "arp_spoof: auto-detected gateway %s on interface '%s'", detected, self._iface
+        )
+        return detected
+
+    @property
+    def gateway_ip(self) -> str:
+        """The gateway IP in effect right now - config.gateway_ip if set
+        (including after a hot-reload), otherwise the value auto-detected
+        at startup."""
+        return self.config.gateway_ip or self._resolved_gateway_ip
 
     def handle_packet(self, packet: Packet) -> None:
         if not packet.haslayer(ARP):
@@ -57,7 +82,7 @@ class ArpSpoofDetector(BaseDetector):
         arp = packet[ARP]
         if arp.op != 2:  # only ARP replies ("is-at") claim an IP->MAC mapping
             return
-        if arp.psrc != self.config.gateway_ip:
+        if arp.psrc != self.gateway_ip:
             return
 
         claimed_mac = arp.hwsrc.lower()
@@ -84,7 +109,7 @@ class ArpSpoofDetector(BaseDetector):
                 severity=Severity.HIGH,
                 title=f"ARP spoofing suspected: gateway MAC changed to {claimed_mac}",
                 description=(
-                    f"The baseline MAC address for gateway {self.config.gateway_ip} is "
+                    f"The baseline MAC address for gateway {self.gateway_ip} is "
                     f"{self._baseline_mac}, but an ARP reply just claimed the gateway is now "
                     f"at {claimed_mac}. This is the classic ARP cache poisoning pattern used "
                     "to redirect traffic through an attacker's machine for a MITM attack."
@@ -102,7 +127,7 @@ class ArpSpoofDetector(BaseDetector):
                         "known_ip_for_claimed_mac": known_ip,
                     },
                 ),
-                dedup_key=f"arp_spoof:{self.config.gateway_ip}:{claimed_mac}",
+                dedup_key=f"arp_spoof:{self.gateway_ip}:{claimed_mac}",
             )
         )
 
@@ -112,17 +137,17 @@ class ArpSpoofDetector(BaseDetector):
             Alert(
                 detector_name=self.name,
                 severity=Severity.INFO,
-                title=f"Learned gateway MAC baseline for {self.config.gateway_ip}",
+                title=f"Learned gateway MAC baseline for {self.gateway_ip}",
                 description=(
                     "No known_gateway_mac was configured, so the first ARP reply seen for "
-                    f"{self.config.gateway_ip} ({claimed_mac}) was learned as the trusted "
+                    f"{self.gateway_ip} ({claimed_mac}) was learned as the trusted "
                     "baseline. Verify this MAC address is correct."
                 ),
                 source_mac=claimed_mac,
-                source_ip=self.config.gateway_ip,
+                source_ip=self.gateway_ip,
                 vendor=lookup_vendor(claimed_mac),
                 remediation=BASELINE_LEARNED_REMEDIATION,
                 evidence=build_evidence(packet, {"learned_baseline_mac": claimed_mac}),
-                dedup_key=f"arp_spoof:baseline:{self.config.gateway_ip}",
+                dedup_key=f"arp_spoof:baseline:{self.gateway_ip}",
             )
         )
