@@ -5,6 +5,10 @@
 
   <h1><span class="tag {{ alert.severity }}">{{ alert.severity }}</span> {{ alert.title }}</h1>
 
+  {% if whitelisted %}
+    <div class="banner">Added to {{ whitelist_label }} and applied - no restart needed.</div>
+  {% endif %}
+
   <div class="card">
     <dl class="kv">
       <dt>Detector</dt><dd class="mono">{{ alert.detector_name }}</dd>
@@ -16,6 +20,13 @@
       <dt>Last seen</dt><dd class="mono">{{ alert.last_seen }}</dd>
       <dt>Dedup key</dt><dd class="mono">{{ alert.dedup_key }}</dd>
     </dl>
+    {% if whitelist_label %}
+      <form method="post" action="/alerts/{{ alert.id }}/whitelist" style="margin-top: 16px;">
+        <button class="primary" type="submit">
+          Add {{ alert.source_ip }} to {{ whitelist_label }}
+        </button>
+      </form>
+    {% endif %}
   </div>
 
   <div class="card">

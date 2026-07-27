@@ -124,6 +124,9 @@ rather it only be reachable from the machine PoisonHound runs on.
 
 - An alert history view, backed by SQLite (`dashboard.db_path`), filterable
   by severity, with full evidence/remediation on each alert's detail page.
+  For rogue DHCP and IPv6 rogue router/DHCPv6 alerts, a one-click
+  "Add to whitelist" button adds the source straight to the right
+  `authorized_*` list and applies it immediately.
 - A settings page for SMTP delivery and each detector's whitelist fields
   (gateway/authorized servers/routers) that writes `config.yaml` and
   hot-reloads the change into the running detectors and SMTP notifier -

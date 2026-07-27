@@ -11,10 +11,10 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-import yaml
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from poisonhound.dashboard.config_io import read_raw_config, write_raw_config
 from poisonhound.dashboard.deps import require_auth
 
 logger = logging.getLogger(__name__)
@@ -57,8 +57,7 @@ def save_settings(
     ipv6_authorized_dhcpv6_servers: Annotated[str, Form()] = "",
 ) -> RedirectResponse:
     config_path = request.app.state.config_path
-    with open(config_path, encoding="utf-8") as f:
-        raw = yaml.safe_load(f) or {}
+    raw = read_raw_config(config_path)
 
     smtp = raw.setdefault("smtp", {})
     smtp["host"] = smtp_host
@@ -84,8 +83,7 @@ def save_settings(
     ipv6_rogue_ra["authorized_routers"] = _split_csv(ipv6_authorized_routers)
     ipv6_rogue_ra["authorized_dhcpv6_servers"] = _split_csv(ipv6_authorized_dhcpv6_servers)
 
-    with open(config_path, "w", encoding="utf-8") as f:
-        yaml.safe_dump(raw, f, sort_keys=False)
+    write_raw_config(config_path, raw)
 
     reload_config = request.app.state.reload_config
     if reload_config is not None:
