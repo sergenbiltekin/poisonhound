@@ -70,6 +70,14 @@ pip install poisonhound-X.Y.Z-py3-none-any.whl
 Works the same way on Windows and Linux; the release also includes a
 `.tar.gz` sdist and a `checksums.txt`.
 
+### Windows: no Python required
+
+Each release also attaches standalone `poisonhound.exe` and
+`poisonhound-service.exe` (plus a `checksums-windows.txt`) - just download
+and run, no Python or `pip install` needed. See
+[Windows Service](#windows-service) below for running as a background
+service instead of a console window.
+
 ## Configuration
 
 Copy the example config and edit it for your network:
@@ -113,6 +121,36 @@ poisonhound --config config.yaml --check-config
 
 Stop with Ctrl+C (SIGINT/SIGTERM are handled gracefully on both Linux and
 Windows).
+
+## Windows Service
+
+To run PoisonHound in the background instead of a console window, install
+it as a Windows Service. This needs an elevated (Administrator) prompt.
+
+1. Get `poisonhound-service.exe` - either from a release download, or
+   (after `pip install -e .`) it's on your `PATH` already.
+2. Put your `config.yaml` at `C:\ProgramData\PoisonHound\config.yaml` -
+   the service always reads its config from that fixed location, so a
+   restart or reboot doesn't depend on how it was originally launched.
+3. Install and start it:
+
+```bat
+poisonhound-service.exe install
+poisonhound-service.exe start
+```
+
+Other commands: `stop`, `restart`, `remove` (uninstall), and `debug` (runs
+in the console with service logging, useful for troubleshooting startup
+issues before installing for real). Service events (start/stop/failure to
+start) go to the Windows Event Log; set `logging.file` in `config.yaml` for
+PoisonHound's own alert/detector logs, since a service has no console to
+print to. Relative paths in `config.yaml` (`logging.file`, `dashboard.db_path`,
+`detectors.name_resolution_canary.state_file`) resolve relative to
+`C:\ProgramData\PoisonHound`, not wherever the service happened to start
+from.
+
+If Npcap isn't installed, the service fails to start with a clear error in
+the Event Log rather than silently never capturing anything.
 
 ## Web dashboard
 
@@ -180,6 +218,10 @@ in CI on both Linux and Windows.
 - `src/poisonhound/net/` - shared packet-building/evidence helpers.
 - `src/poisonhound/dashboard/` - the optional FastAPI web dashboard
   (SQLite-backed alert history, settings page, session-cookie login).
+- `src/poisonhound/win_service.py` - Windows Service wrapper (pywin32),
+  only importable on Windows.
+- `packaging/windows/` - PyInstaller spec and entry scripts for the
+  standalone `poisonhound.exe` / `poisonhound-service.exe` builds.
 
 A single sniffer is shared across all detectors: their BPF filters are
 merged, and each captured packet is fanned out to every enabled detector. A
@@ -191,8 +233,7 @@ capture.
 Deliberately out of scope for now, but the plugin interfaces are built to
 support them without rework:
 
-- Packaged Windows Service / `.exe` and Linux systemd distribution.
-- Optional Docker deployment.
+- Linux systemd unit + optional Docker deployment.
 - Webhook, Telegram, and Discord notifiers.
 
 ## Contributing

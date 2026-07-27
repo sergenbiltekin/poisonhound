@@ -39,3 +39,47 @@ jobs:
         with:
           files: dist/*
           generate_release_notes: true
+
+  windows-exe:
+    needs: release
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,build-exe]"
+
+      - name: Lint
+        run: ruff check src tests
+
+      - name: Test
+        run: pytest -q
+
+      - name: Build standalone exes
+        run: pyinstaller packaging/windows/poisonhound.spec --distpath dist/windows --clean --noconfirm
+
+      - name: Smoke test the CLI exe
+        run: |
+          .\dist\windows\poisonhound.exe --help
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Generate checksums
+        # Named distinctly from the sdist/wheel job's checksums.txt - both
+        # land as assets on the same release, and a same-named asset would
+        # silently overwrite the other one.
+        run: |
+          cd dist\windows
+          Get-FileHash *.exe -Algorithm SHA256 | ForEach-Object {
+            "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)"
+          } | Out-File -Encoding utf8 checksums-windows.txt
+
+      - name: Attach exes to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/windows/*
+          generate_release_notes: false
