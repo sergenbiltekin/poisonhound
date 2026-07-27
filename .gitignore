@@ -16,6 +16,7 @@ htmlcov/
 config.yaml
 .env
 poisonhound_state.json
+poisonhound_alerts.db
 
 # Local dev notes - never published
 NOTES.md

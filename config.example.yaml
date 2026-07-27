@@ -63,3 +63,16 @@ smtp:
   from_addr: "alerts@example.com"
   to_addrs: ["you@example.com"]
   min_severity: "medium"
+
+# Optional local web dashboard: alert history + a settings page that edits
+# this file and hot-reloads most values into the running detectors/SMTP
+# notifier without a restart. Disabled by default.
+dashboard:
+  enabled: false
+  host: "127.0.0.1" # keep this on localhost unless you understand the risk
+  port: 8787
+  username: "admin"
+  # Leave blank and set PH_DASHBOARD__PASSWORD instead, or a random
+  # password is generated and logged each time PoisonHound starts.
+  password: null
+  db_path: "poisonhound_alerts.db"

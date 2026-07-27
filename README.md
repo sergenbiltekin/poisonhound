@@ -71,6 +71,7 @@ Key fields:
 | `detectors.ipv6_rogue_ra.authorized_routers` / `authorized_dhcpv6_servers` | Link-local addresses of your legitimate IPv6 routers/DHCPv6 servers. |
 | `detectors.name_resolution_canary` | Tuning for the active LLMNR/mDNS/NBT-NS canary queries. |
 | `smtp` | Mail server and recipients for alert emails. |
+| `dashboard` | Optional local web UI - see below. Disabled by default. |
 
 SMTP credentials don't have to live in `config.yaml` - copy `.env.example`
 to `.env` and set `PH_SMTP__PASSWORD` instead.
@@ -95,6 +96,23 @@ poisonhound --config config.yaml --check-config
 
 Stop with Ctrl+C (SIGINT/SIGTERM are handled gracefully on both Linux and
 Windows).
+
+## Web dashboard
+
+Set `dashboard.enabled: true` in `config.yaml` to get a local web UI at
+`http://127.0.0.1:8787` (bound to localhost only, by design) with:
+
+- An alert history view, backed by SQLite (`dashboard.db_path`), filterable
+  by severity, with full evidence/remediation on each alert's detail page.
+- A settings page for SMTP delivery and each detector's whitelist fields
+  (gateway/authorized servers/routers) that writes `config.yaml` and
+  hot-reloads the change into the running detectors and SMTP notifier -
+  no restart needed. Changing the network interface, a detector's
+  enabled/disabled state, or dashboard credentials still requires a restart.
+
+It's protected by HTTP Basic Auth. If you don't set `dashboard.password` (or
+`PH_DASHBOARD__PASSWORD`), a random password is generated and logged once
+each time PoisonHound starts.
 
 ## Example alert
 
@@ -132,6 +150,8 @@ in CI on both Linux and Windows.
 - `src/poisonhound/detectors/` - one module per attack type.
 - `src/poisonhound/notifiers/` - alert delivery channels (SMTP today).
 - `src/poisonhound/net/` - shared packet-building/evidence helpers.
+- `src/poisonhound/dashboard/` - the optional FastAPI web dashboard
+  (SQLite-backed alert history, settings page, HTTP Basic Auth).
 
 A single sniffer is shared across all detectors: their BPF filters are
 merged, and each captured packet is fanned out to every enabled detector. A
@@ -143,7 +163,6 @@ capture.
 Deliberately out of scope for now, but the plugin interfaces are built to
 support them without rework:
 
-- A local web dashboard for browsing alert history and editing settings.
 - Packaged Windows Service / `.exe` and Linux systemd distribution.
 - Optional Docker deployment.
 - Webhook, Telegram, and Discord notifiers.

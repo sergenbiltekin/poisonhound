@@ -103,6 +103,15 @@ class SmtpConfig(BaseModel):
         return value
 
 
+class DashboardConfig(BaseModel):
+    enabled: bool = False
+    host: str = "127.0.0.1"
+    port: int = 8787
+    username: str = "admin"
+    password: str | None = None
+    db_path: str = "poisonhound_alerts.db"
+
+
 class PoisonHoundConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="PH_", env_nested_delimiter="__")
 
@@ -112,6 +121,7 @@ class PoisonHoundConfig(BaseSettings):
     detectors: DetectorsConfig
     notifiers: list[str] = Field(default_factory=lambda: ["smtp"])
     smtp: SmtpConfig
+    dashboard: DashboardConfig = DashboardConfig()
 
     @field_validator("interface")
     @classmethod

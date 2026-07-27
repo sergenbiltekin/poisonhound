@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Alert #{{ alert.id }} - PoisonHound{% endblock %}
+{% block content %}
+  <a class="back-link" href="/">&larr; Back to alerts</a>
+
+  <h1><span class="tag {{ alert.severity }}">{{ alert.severity }}</span> {{ alert.title }}</h1>
+
+  <div class="card">
+    <dl class="kv">
+      <dt>Detector</dt><dd class="mono">{{ alert.detector_name }}</dd>
+      <dt>Source MAC</dt><dd class="mono">{{ alert.source_mac }}</dd>
+      <dt>Source IP</dt><dd class="mono">{{ alert.source_ip or "unknown" }}</dd>
+      <dt>Vendor</dt><dd>{{ alert.vendor or "unknown" }}</dd>
+      <dt>Occurrences</dt><dd>{{ alert.occurrence_count }}</dd>
+      <dt>First seen</dt><dd class="mono">{{ alert.first_seen }}</dd>
+      <dt>Last seen</dt><dd class="mono">{{ alert.last_seen }}</dd>
+      <dt>Dedup key</dt><dd class="mono">{{ alert.dedup_key }}</dd>
+    </dl>
+  </div>
+
+  <div class="card">
+    <h2>What happened</h2>
+    <p>{{ alert.description }}</p>
+  </div>
+
+  <div class="card">
+    <h2>Recommended actions</h2>
+    <ul class="remediation">
+      {% for step in alert.remediation %}
+        <li>{{ step }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Evidence</h2>
+    <pre class="evidence mono">{{ alert.evidence.packet_dump or alert.evidence.packet_summary or "" }}</pre>
+  </div>
+{% endblock %}

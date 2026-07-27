@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Settings - PoisonHound{% endblock %}
+{% block content %}
+  <h1>Settings</h1>
+
+  {% if saved %}
+    <div class="banner">Settings saved and applied - no restart needed.</div>
+  {% endif %}
+
+  <form method="post" action="/settings">
+    <div class="card">
+      <h2>SMTP notifications</h2>
+      <div class="field">
+        <label for="smtp_host">Host</label>
+        <input id="smtp_host" name="smtp_host" value="{{ config.smtp.host }}" required />
+      </div>
+      <div class="field">
+        <label for="smtp_port">Port</label>
+        <input id="smtp_port" name="smtp_port" type="number" value="{{ config.smtp.port }}" required />
+      </div>
+      <div class="field checkbox">
+        <input id="smtp_use_tls" name="smtp_use_tls" type="checkbox" {% if config.smtp.use_tls %}checked{% endif %} />
+        <label for="smtp_use_tls">Use STARTTLS</label>
+      </div>
+      <div class="field">
+        <label for="smtp_username">Username</label>
+        <input id="smtp_username" name="smtp_username" value="{{ config.smtp.username or '' }}" />
+      </div>
+      <div class="field">
+        <label for="smtp_password">Password</label>
+        <input id="smtp_password" name="smtp_password" type="password" placeholder="Leave blank to keep current password" />
+        <div class="hint">Leave blank to keep the currently configured password unchanged.</div>
+      </div>
+      <div class="field">
+        <label for="smtp_from_addr">From address</label>
+        <input id="smtp_from_addr" name="smtp_from_addr" value="{{ config.smtp.from_addr }}" required />
+      </div>
+      <div class="field">
+        <label for="smtp_to_addrs">To addresses</label>
+        <input id="smtp_to_addrs" name="smtp_to_addrs" value="{{ config.smtp.to_addrs|join(', ') }}" required />
+        <div class="hint">Comma-separated.</div>
+      </div>
+      <div class="field">
+        <label for="smtp_min_severity">Minimum severity to email</label>
+        <select id="smtp_min_severity" name="smtp_min_severity">
+          {% for sev in ["info", "low", "medium", "high", "critical"] %}
+            <option value="{{ sev }}" {% if config.smtp.min_severity == sev %}selected{% endif %}>{{ sev }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>ARP spoof detector</h2>
+      <div class="field">
+        <label for="arp_spoof_gateway_ip">Gateway IP</label>
+        <input id="arp_spoof_gateway_ip" name="arp_spoof_gateway_ip" value="{{ config.detectors.arp_spoof.gateway_ip }}" required />
+      </div>
+      <div class="field">
+        <label for="arp_spoof_known_gateway_mac">Known gateway MAC (optional)</label>
+        <input id="arp_spoof_known_gateway_mac" name="arp_spoof_known_gateway_mac" value="{{ config.detectors.arp_spoof.known_gateway_mac or '' }}" />
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Rogue DHCP detector</h2>
+      <div class="field">
+        <label for="rogue_dhcp_authorized_servers">Authorized DHCP servers</label>
+        <input id="rogue_dhcp_authorized_servers" name="rogue_dhcp_authorized_servers" value="{{ config.detectors.rogue_dhcp.authorized_servers|join(', ') }}" />
+        <div class="hint">Comma-separated IPs or MACs.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>IPv6 rogue RA / mitm6 detector</h2>
+      <div class="field">
+        <label for="ipv6_authorized_routers">Authorized routers</label>
+        <input id="ipv6_authorized_routers" name="ipv6_authorized_routers" value="{{ config.detectors.ipv6_rogue_ra.authorized_routers|join(', ') }}" />
+        <div class="hint">Comma-separated link-local IPv6 addresses.</div>
+      </div>
+      <div class="field">
+        <label for="ipv6_authorized_dhcpv6_servers">Authorized DHCPv6 servers</label>
+        <input id="ipv6_authorized_dhcpv6_servers" name="ipv6_authorized_dhcpv6_servers" value="{{ config.detectors.ipv6_rogue_ra.authorized_dhcpv6_servers|join(', ') }}" />
+        <div class="hint">Comma-separated link-local IPv6 addresses.</div>
+      </div>
+    </div>
+
+    <button class="primary" type="submit">Save</button>
+  </form>
+
+  <p class="hint" style="margin-top: 18px;">
+    Changing the network interface, dashboard credentials, or a detector's
+    enabled/disabled state requires editing config.yaml directly and
+    restarting PoisonHound.
+  </p>
+{% endblock %}

@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Alerts - PoisonHound{% endblock %}
+{% block content %}
+  <h1>Alerts</h1>
+
+  <div class="counts">
+    {% for sev in severities %}
+      <div class="count-chip">
+        <b>{{ counts.get(sev, 0) }}</b>{{ sev }}
+      </div>
+    {% endfor %}
+  </div>
+
+  <form class="filters" method="get" action="/">
+    <select name="severity" onchange="this.form.submit()">
+      <option value="">All severities</option>
+      {% for sev in severities %}
+        <option value="{{ sev }}" {% if selected_severity == sev %}selected{% endif %}>{{ sev }}</option>
+      {% endfor %}
+    </select>
+  </form>
+
+  {% if alerts %}
+    <table class="alerts">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>Title</th>
+          <th>Detector</th>
+          <th>Source</th>
+          <th>Occurrences</th>
+          <th>Last seen</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alert in alerts %}
+          <tr>
+            <td><span class="tag {{ alert.severity }}">{{ alert.severity }}</span></td>
+            <td><a href="/alerts/{{ alert.id }}">{{ alert.title }}</a></td>
+            <td class="mono">{{ alert.detector_name }}</td>
+            <td class="mono">{{ alert.source_ip or alert.source_mac }}</td>
+            <td>{{ alert.occurrence_count }}</td>
+            <td class="mono">{{ alert.last_seen }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty">No alerts recorded yet.</div>
+  {% endif %}
+{% endblock %}

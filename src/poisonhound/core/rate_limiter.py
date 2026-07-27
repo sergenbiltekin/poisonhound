@@ -32,6 +32,9 @@ class AlertDeduper:
         self._state: dict[str, _DedupeState] = {}
         self._lock = threading.Lock()
 
+    def set_window(self, window_seconds: int) -> None:
+        self._window_seconds = window_seconds
+
     def process(self, alert: Alert) -> Alert | None:
         """Return the alert to notify on, or None if it should be suppressed."""
         now = alert.last_seen
