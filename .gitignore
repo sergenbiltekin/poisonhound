@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local config, secrets, and runtime state
+config.yaml
+.env
+poisonhound_state.json
+
+# Local dev notes - never published
+NOTES.md
+RULES.md
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

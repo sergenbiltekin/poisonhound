@@ -1,0 +1,65 @@
+# PoisonHound configuration.
+# Copy this file to config.yaml and adjust the values for your network.
+# Secrets (like the SMTP password) can instead be set via environment
+# variables or a .env file - see .env.example.
+
+# Network interface to listen on, e.g. "eth0", "wlan0", "Ethernet".
+interface: "eth0"
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+  file: null # e.g. "/var/log/poisonhound.log"; null logs to stdout only
+
+# How long (in seconds) to suppress a repeated alert with the same
+# dedup key before notifying again.
+rate_limit:
+  dedupe_window_seconds: 300
+
+detectors:
+  arp_spoof:
+    enabled: true
+    gateway_ip: "192.168.1.1"
+    # If left null, the first MAC seen for gateway_ip is learned as the
+    # baseline and an INFO alert is raised so you know it happened.
+    known_gateway_mac: null
+    check_interval_seconds: 5
+
+  rogue_dhcp:
+    enabled: true
+    # IP or MAC addresses of your legitimate DHCP server(s).
+    authorized_servers: []
+    active_probe_enabled: false
+    probe_interval_seconds: 300
+
+  ipv6_rogue_ra:
+    enabled: true
+    # Link-local IPv6 addresses of your legitimate routers.
+    authorized_routers: []
+    # Link-local IPv6 addresses of your legitimate DHCPv6 servers.
+    authorized_dhcpv6_servers: []
+
+  name_resolution_canary:
+    enabled: true
+    canary_prefix: "ph-canary"
+    canary_count: 3
+    query_interval_seconds: 60
+    protocols: ["llmnr", "mdns", "nbns"]
+    # Where the canary name seed is persisted so canary names stay the same
+    # across restarts. Relative paths are resolved from the current working
+    # directory PoisonHound is started from.
+    state_file: "poisonhound_state.json"
+
+notifiers: ["smtp"]
+
+smtp:
+  enabled: true
+  host: "smtp.example.com"
+  port: 587
+  use_tls: true
+  username: "alerts@example.com"
+  # Leave blank here and set PH_SMTP__PASSWORD in your environment or .env file instead.
+  password: null
+  from_addr: "alerts@example.com"
+  to_addrs: ["you@example.com"]
+  min_severity: "medium"
