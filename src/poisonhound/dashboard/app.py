@@ -7,12 +7,15 @@ import secrets
 from collections.abc import Callable
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.middleware.sessions import SessionMiddleware
 
 from poisonhound.core.config import PoisonHoundConfig
-from poisonhound.dashboard.routes import alerts, health, settings
+from poisonhound.dashboard.deps import NotAuthenticatedError
+from poisonhound.dashboard.routes import alerts, auth, health, settings
 from poisonhound.dashboard.store import AlertStore
 
 logger = logging.getLogger(__name__)
@@ -54,8 +57,21 @@ def create_app(
             app.state.effective_password,
         )
 
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=secrets.token_urlsafe(32),
+        session_cookie="ph_session",
+        same_site="lax",
+        https_only=False,
+    )
+
+    @app.exception_handler(NotAuthenticatedError)
+    async def _redirect_to_login(request: Request, exc: NotAuthenticatedError) -> RedirectResponse:
+        return RedirectResponse(url=f"/login?next={request.url.path}", status_code=303)
+
     app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
+    app.include_router(auth.router)
     app.include_router(health.router)
     app.include_router(alerts.router)
     app.include_router(settings.router)

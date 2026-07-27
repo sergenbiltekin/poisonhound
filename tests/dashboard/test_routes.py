@@ -11,7 +11,8 @@ from poisonhound.core.config import PoisonHoundConfig
 from poisonhound.dashboard.app import create_app
 from poisonhound.dashboard.store import AlertStore
 
-AUTH = ("admin", "test-pass")
+USERNAME = "admin"
+PASSWORD = "test-pass"
 
 
 def _make_client(
@@ -19,12 +20,23 @@ def _make_client(
     tmp_path: Path,
     store: AlertStore | None = None,
 ) -> TestClient:
-    config = config_factory(dashboard={"password": "test-pass", "username": "admin"})
+    config = config_factory(dashboard={"password": PASSWORD, "username": USERNAME})
     store = store or AlertStore(":memory:")
     config_path = tmp_path / "config.yaml"
     config_path.write_text("interface: eth0\n", encoding="utf-8")
     app = create_app(store, lambda: config, config_path)
     return TestClient(app)
+
+
+def _login(
+    client: TestClient, username: str = USERNAME, password: str = PASSWORD
+) -> None:
+    resp = client.post(
+        "/login",
+        data={"username": username, "password": password, "next": "/"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
 
 
 def test_health_does_not_require_auth(
@@ -38,35 +50,56 @@ def test_health_does_not_require_auth(
     assert resp.json() == {"status": "ok"}
 
 
-def test_alerts_list_requires_auth(
+def test_alerts_list_redirects_to_login_when_unauthenticated(
     config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
 ) -> None:
     client = _make_client(config_factory, tmp_path)
+
+    resp = client.get("/", follow_redirects=False)
+
+    assert resp.status_code == 303
+    assert resp.headers["location"].startswith("/login")
+
+
+def test_login_with_wrong_password_redirects_back_with_error(
+    config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
+) -> None:
+    client = _make_client(config_factory, tmp_path)
+
+    resp = client.post(
+        "/login",
+        data={"username": USERNAME, "password": "wrong-password", "next": "/"},
+        follow_redirects=False,
+    )
+
+    assert resp.status_code == 303
+    assert resp.headers["location"].startswith("/login?error=1")
+    # still not authenticated
+    assert client.get("/", follow_redirects=False).status_code == 303
+
+
+def test_login_then_alerts_list_with_no_alerts(
+    config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
+) -> None:
+    client = _make_client(config_factory, tmp_path)
+    _login(client)
 
     resp = client.get("/")
 
-    assert resp.status_code == 401
-
-
-def test_wrong_password_is_rejected(
-    config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
-) -> None:
-    client = _make_client(config_factory, tmp_path)
-
-    resp = client.get("/", auth=("admin", "wrong-password"))
-
-    assert resp.status_code == 401
-
-
-def test_alerts_list_with_valid_auth_and_no_alerts(
-    config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
-) -> None:
-    client = _make_client(config_factory, tmp_path)
-
-    resp = client.get("/", auth=AUTH)
-
     assert resp.status_code == 200
     assert "No alerts recorded yet" in resp.text
+
+
+def test_logout_revokes_the_session(
+    config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
+) -> None:
+    client = _make_client(config_factory, tmp_path)
+    _login(client)
+    assert client.get("/").status_code == 200
+
+    client.get("/logout", follow_redirects=False)
+
+    assert client.get("/", follow_redirects=False).status_code == 303
 
 
 def test_alerts_list_shows_recorded_alert(
@@ -77,8 +110,9 @@ def test_alerts_list_shows_recorded_alert(
     store = AlertStore(":memory:")
     store.insert_or_update(alert_factory(title="Test spoof alert"))
     client = _make_client(config_factory, tmp_path, store=store)
+    _login(client)
 
-    resp = client.get("/", auth=AUTH)
+    resp = client.get("/")
 
     assert resp.status_code == 200
     assert "Test spoof alert" in resp.text
@@ -88,8 +122,9 @@ def test_alert_detail_returns_404_for_unknown_id(
     config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
 ) -> None:
     client = _make_client(config_factory, tmp_path)
+    _login(client)
 
-    resp = client.get("/alerts/999", auth=AUTH)
+    resp = client.get("/alerts/999")
 
     assert resp.status_code == 404
 
@@ -104,9 +139,10 @@ def test_alert_detail_shows_remediation_and_evidence(
         alert_factory(remediation=["Do the thing"], evidence={"packet_summary": "ARP who-has"})
     )
     client = _make_client(config_factory, tmp_path, store=store)
+    _login(client)
     alert_id = store.list_alerts()[0]["id"]
 
-    resp = client.get(f"/alerts/{alert_id}", auth=AUTH)
+    resp = client.get(f"/alerts/{alert_id}")
 
     assert resp.status_code == 200
     assert "Do the thing" in resp.text
@@ -117,8 +153,9 @@ def test_settings_form_prefills_current_config(
     config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
 ) -> None:
     client = _make_client(config_factory, tmp_path)
+    _login(client)
 
-    resp = client.get("/settings", auth=AUTH)
+    resp = client.get("/settings")
 
     assert resp.status_code == 200
     assert "smtp.example.com" in resp.text
@@ -144,17 +181,17 @@ smtp:
 """,
         encoding="utf-8",
     )
-    config = config_factory(dashboard={"password": "test-pass", "username": "admin"})
+    config = config_factory(dashboard={"password": PASSWORD, "username": USERNAME})
     store = AlertStore(":memory:")
     reload_calls: list[int] = []
     app = create_app(
         store, lambda: config, real_config_path, reload_config=lambda: reload_calls.append(1)
     )
     client = TestClient(app)
+    _login(client)
 
     resp = client.post(
         "/settings",
-        auth=AUTH,
         data={
             "smtp_host": "smtp.new-host.example.com",
             "smtp_port": "587",
@@ -201,14 +238,14 @@ smtp:
 """,
         encoding="utf-8",
     )
-    config = config_factory(dashboard={"password": "test-pass", "username": "admin"})
+    config = config_factory(dashboard={"password": PASSWORD, "username": USERNAME})
     store = AlertStore(":memory:")
     app = create_app(store, lambda: config, real_config_path)
     client = TestClient(app)
+    _login(client)
 
     client.post(
         "/settings",
-        auth=AUTH,
         data={
             "smtp_host": "smtp.example.com",
             "smtp_port": "587",

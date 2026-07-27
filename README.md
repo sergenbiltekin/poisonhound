@@ -127,9 +127,10 @@ Set `dashboard.enabled: true` in `config.yaml` to get a local web UI at
   no restart needed. Changing the network interface, a detector's
   enabled/disabled state, or dashboard credentials still requires a restart.
 
-It's protected by HTTP Basic Auth. If you don't set `dashboard.password` (or
-`PH_DASHBOARD__PASSWORD`), a random password is generated and logged once
-each time PoisonHound starts.
+It's protected by a login page (session cookie, not a browser-native auth
+popup - those turned out to behave inconsistently across browsers). If you
+don't set `dashboard.password` (or `PH_DASHBOARD__PASSWORD`), a random
+password is generated and logged once each time PoisonHound starts.
 
 ## Example alert
 
@@ -168,7 +169,7 @@ in CI on both Linux and Windows.
 - `src/poisonhound/notifiers/` - alert delivery channels (SMTP today).
 - `src/poisonhound/net/` - shared packet-building/evidence helpers.
 - `src/poisonhound/dashboard/` - the optional FastAPI web dashboard
-  (SQLite-backed alert history, settings page, HTTP Basic Auth).
+  (SQLite-backed alert history, settings page, session-cookie login).
 
 A single sniffer is shared across all detectors: their BPF filters are
 merged, and each captured packet is fanned out to every enabled detector. A

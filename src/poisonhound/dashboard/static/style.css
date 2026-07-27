@@ -161,6 +161,33 @@ button.primary:hover { filter: brightness(1.08); }
   margin-bottom: 18px;
   font-size: 14px;
 }
+.banner-error {
+  background: rgba(255, 90, 95, 0.1);
+  border-color: var(--sev-critical);
+  color: var(--sev-critical);
+}
+
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.login-card {
+  width: 320px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 32px;
+}
+.login-brand {
+  font-weight: 700;
+  font-size: 19px;
+  letter-spacing: 0.02em;
+  margin-bottom: 22px;
+  text-align: center;
+}
+.login-brand .dot { color: var(--accent); }
 
 .back-link {
   display: inline-block;
