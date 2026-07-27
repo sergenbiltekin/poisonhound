@@ -8,6 +8,10 @@ PoisonHound watches a local network for the traffic patterns behind common
 man-in-the-middle setups and emails you when it sees one, with enough detail
 in the alert to act on it immediately.
 
+![PoisonHound catching ARP spoofing, a rogue DHCP server, mitm6, and an LLMNR canary hit in one session](docs/screenshot.png)
+
+*Captured from a real test session: `arpspoof`, a hand-crafted rogue DHCPOFFER, `mitm6`, and `Responder` run against a live PoisonHound instance - not simulated output.*
+
 It detects:
 
 - **ARP spoofing** - the MAC address claiming to be your gateway changes.
@@ -104,7 +108,9 @@ ALERT [HIGH] ARP spoofing suspected: gateway MAC changed to de:ad:be:ef:00:01
 ```
 
 The full packet dump backing this alert, plus the recommended remediation
-steps, are written to the log and included in the alert email.
+steps, are written to the log and included in the alert email. See the
+screenshot above for what a real detection run looks like across all four
+detectors.
 
 ## Development
 
