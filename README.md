@@ -10,7 +10,7 @@ in the alert to act on it immediately.
 
 ![PoisonHound catching ARP spoofing, a rogue DHCP server, mitm6, and an LLMNR canary hit in one session](docs/screenshot.png)
 
-*Captured from a real test session: `arpspoof`, a hand-crafted rogue DHCPOFFER, `mitm6`, and `Responder` run against a live PoisonHound instance - not simulated output.*
+*Captured from a real test session: `arpspoof`, a hand-crafted rogue DHCPOFFER, `mitm6`, and `Responder` run against a live PoisonHound instance - not simulated output. IP addresses have been redacted to generic examples.*
 
 It detects:
 
