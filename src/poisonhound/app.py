@@ -14,6 +14,7 @@ from poisonhound.core.alert import Alert, Severity
 from poisonhound.core.config import PoisonHoundConfig
 from poisonhound.core.config_loader import load_config
 from poisonhound.core.dispatcher import PacketDispatcher
+from poisonhound.core.mac_directory import MacDirectory
 from poisonhound.core.notifier import BaseNotifier
 from poisonhound.core.rate_limiter import AlertDeduper
 from poisonhound.core.registry import build_enabled_detectors
@@ -50,10 +51,11 @@ class PoisonHoundApp:
         self._reload_lock = threading.Lock()
         self._alert_queue: queue.Queue[Alert] = queue.Queue()
         self.deduper = AlertDeduper(config.rate_limit.dedupe_window_seconds)
+        self.mac_directory = MacDirectory()
         self.detectors = build_enabled_detectors(
-            config.detectors, self._alert_queue.put, config.interface
+            config.detectors, self._alert_queue.put, config.interface, self.mac_directory
         )
-        self.dispatcher = PacketDispatcher(self.detectors)
+        self.dispatcher = PacketDispatcher(self.detectors, mac_directory=self.mac_directory)
         self.notifiers: list[BaseNotifier] = [ConsoleNotifier()]
         self._configure_notifiers(config)
         self.alert_store: AlertStore | None = None

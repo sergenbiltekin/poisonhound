@@ -38,6 +38,12 @@ Every alert includes:
 Repeated alerts for the same underlying issue are deduplicated over a
 configurable window instead of flooding your inbox.
 
+ARP itself never carries the attacker's real IP - forging that claim is the
+whole mechanism behind ARP spoofing. PoisonHound cross-references the
+spoofing MAC address against every other protocol it observes (DHCP,
+LLMNR/mDNS/NBT-NS, IPv6), so an ARP spoofing alert can often still tell you
+"this MAC was last seen using IP X" even though the ARP packet alone can't.
+
 ## Installation
 
 Requires Python 3.10+ and, since packet capture needs raw sockets:

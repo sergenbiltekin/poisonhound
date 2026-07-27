@@ -12,6 +12,7 @@ from collections.abc import Callable
 from poisonhound.core.alert import Alert
 from poisonhound.core.config import DetectorsConfig
 from poisonhound.core.detector import BaseDetector
+from poisonhound.core.mac_directory import MacDirectory
 from poisonhound.core.state_store import StateStore
 from poisonhound.detectors.arp_spoof import ArpSpoofDetector
 from poisonhound.detectors.ipv6_rogue_ra import Ipv6RogueRaDetector
@@ -22,12 +23,15 @@ logger = logging.getLogger(__name__)
 
 
 def build_enabled_detectors(
-    config: DetectorsConfig, on_alert: Callable[[Alert], None], iface: str
+    config: DetectorsConfig,
+    on_alert: Callable[[Alert], None],
+    iface: str,
+    mac_directory: MacDirectory | None = None,
 ) -> list[BaseDetector]:
     detectors: list[BaseDetector] = []
 
     if config.arp_spoof.enabled:
-        detectors.append(ArpSpoofDetector(config.arp_spoof, on_alert))
+        detectors.append(ArpSpoofDetector(config.arp_spoof, on_alert, mac_directory=mac_directory))
     else:
         logger.info("arp_spoof detector disabled by config")
 

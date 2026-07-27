@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Alerts - PoisonHound{% endblock %}
 {% block content %}
-  <h1>Alerts</h1>
+  <h1>Alerts <span class="hint" style="font-weight: normal;">(auto-refreshes every 10s)</span></h1>
 
   <div class="counts">
     {% for sev in severities %}
@@ -48,4 +48,14 @@
   {% else %}
     <div class="empty">No alerts recorded yet.</div>
   {% endif %}
+
+  <script>
+    // Keep the alert list current without the user needing to refresh
+    // manually. A full reload is simplest/most robust for a low-traffic
+    // local dashboard; skip it while a filter dropdown is mid-interaction.
+    setTimeout(() => {
+      if (document.activeElement && document.activeElement.tagName === "SELECT") return;
+      window.location.reload();
+    }, 10000);
+  </script>
 {% endblock %}
