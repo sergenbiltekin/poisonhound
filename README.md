@@ -1,6 +1,7 @@
 # PoisonHound
 
 [![CI](https://github.com/sergenbiltekin/poisonhound/actions/workflows/ci.yaml/badge.svg)](https://github.com/sergenbiltekin/poisonhound/actions/workflows/ci.yaml)
+[![Latest release](https://img.shields.io/github/v/release/sergenbiltekin/poisonhound)](https://github.com/sergenbiltekin/poisonhound/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue.svg)](pyproject.toml)
 
@@ -58,6 +59,16 @@ git clone https://github.com/sergenbiltekin/poisonhound.git
 cd poisonhound
 pip install -e .
 ```
+
+Or install a tagged release directly, without cloning - grab the `.whl` from
+[Releases](https://github.com/sergenbiltekin/poisonhound/releases) and:
+
+```bash
+pip install poisonhound-X.Y.Z-py3-none-any.whl
+```
+
+Works the same way on Windows and Linux; the release also includes a
+`.tar.gz` sdist and a `checksums.txt`.
 
 ## Configuration
 
