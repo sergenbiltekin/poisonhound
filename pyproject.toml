@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "poisonhound"
-version = "0.1.0"
+version = "0.1.1"
 description = "Detect ARP spoofing, rogue DHCP servers, IPv6 router advertisement hijacking, and LLMNR/NBT-NS/mDNS poisoning on a local network."
 readme = "README.md"
 requires-python = ">=3.10"
