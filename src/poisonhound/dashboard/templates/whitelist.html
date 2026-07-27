@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Whitelist - PoisonHound{% endblock %}
+{% block content %}
+  <h1>Whitelist</h1>
+  <p class="hint" style="margin-bottom: 20px;">
+    Sources listed here won't trigger alerts. Removing an entry takes effect
+    immediately - no restart needed.
+  </p>
+
+  {% for group in groups %}
+    <div class="card">
+      <h2>{{ group.detector_label }} &mdash; {{ group.field_label }}</h2>
+      {% if group.entries %}
+        <table class="alerts">
+          <tbody>
+            {% for value in group.entries %}
+              <tr>
+                <td class="mono">{{ value }}</td>
+                <td style="text-align: right; width: 1%;">
+                  <form method="post" action="/whitelist/remove">
+                    <input type="hidden" name="detector" value="{{ group.detector_key }}" />
+                    <input type="hidden" name="field" value="{{ group.field }}" />
+                    <input type="hidden" name="value" value="{{ value }}" />
+                    <button class="primary" type="submit">Remove</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty" style="padding: 16px 0;">Nothing whitelisted here yet.</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+{% endblock %}

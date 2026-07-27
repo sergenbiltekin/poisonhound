@@ -17,6 +17,7 @@ config.yaml
 .env
 poisonhound_state.json
 poisonhound_alerts.db
+*.log
 
 # Local dev notes - never published
 NOTES.md

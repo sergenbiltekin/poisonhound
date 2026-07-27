@@ -34,6 +34,18 @@ def _whitelist_target(alert: dict[str, Any]) -> tuple[str, str, str] | None:
     return None
 
 
+def _is_whitelisted(alert: dict[str, Any], config: Any) -> bool:
+    """Check whether the alert's source is currently in its detector's
+    live whitelist, so already-handled alerts can be marked as such
+    instead of just disappearing from history."""
+    target = _whitelist_target(alert)
+    if target is None or not alert["source_ip"]:
+        return False
+    detector_key, field, _label = target
+    detector_config = getattr(config.detectors, detector_key)
+    return alert["source_ip"] in getattr(detector_config, field)
+
+
 @router.get("/", response_class=HTMLResponse)
 def list_alerts(
     request: Request,
@@ -45,6 +57,8 @@ def list_alerts(
     templates = request.app.state.templates
     alerts = store.list_alerts(severity=severity, detector=detector, limit=200)
     counts = store.count_by_severity()
+    config = request.app.state.get_config()
+    whitelisted_ids = {alert["id"] for alert in alerts if _is_whitelisted(alert, config)}
     return templates.TemplateResponse(
         request,
         "alerts_list.html",
@@ -55,6 +69,7 @@ def list_alerts(
             "severities": _SEVERITIES,
             "selected_severity": severity,
             "selected_detector": detector,
+            "whitelisted_ids": whitelisted_ids,
         },
     )
 
@@ -73,6 +88,7 @@ def alert_detail(
         raise HTTPException(status_code=404, detail="Alert not found")
 
     target = _whitelist_target(alert)
+    config = request.app.state.get_config()
     return templates.TemplateResponse(
         request,
         "alert_detail.html",
@@ -80,7 +96,10 @@ def alert_detail(
             "active": "alerts",
             "alert": alert,
             "whitelist_label": target[2] if target else None,
-            "whitelisted": whitelisted,
+            "whitelist_field": target[1] if target else None,
+            "whitelist_detector": target[0] if target else None,
+            "just_whitelisted": whitelisted,
+            "is_whitelisted": _is_whitelisted(alert, config),
         },
     )
 

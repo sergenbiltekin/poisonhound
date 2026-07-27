@@ -126,7 +126,11 @@ rather it only be reachable from the machine PoisonHound runs on.
   by severity, with full evidence/remediation on each alert's detail page.
   For rogue DHCP and IPv6 rogue router/DHCPv6 alerts, a one-click
   "Add to whitelist" button adds the source straight to the right
-  `authorized_*` list and applies it immediately.
+  `authorized_*` list and applies it immediately - whitelisted sources are
+  marked in the alert list and on the alert detail page.
+- A whitelist page listing every detector's authorized sources, with a
+  one-click way to remove any of them (also applied immediately, no
+  restart needed).
 - A settings page for SMTP delivery and each detector's whitelist fields
   (gateway/authorized servers/routers) that writes `config.yaml` and
   hot-reloads the change into the running detectors and SMTP notifier -

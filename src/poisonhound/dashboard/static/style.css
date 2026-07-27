@@ -114,6 +114,9 @@ table.alerts a:hover { text-decoration: underline; }
 .tag.medium { color: var(--sev-medium); }
 .tag.high { color: var(--sev-high); }
 .tag.critical { color: var(--sev-critical); }
+.tag.whitelisted { color: var(--sev-low); margin-left: 8px; }
+
+.whitelisted-state { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 
 .empty { color: var(--text-dim); padding: 40px 0; text-align: center; }
 

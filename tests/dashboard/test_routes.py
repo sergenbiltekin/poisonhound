@@ -7,7 +7,14 @@ import yaml
 from fastapi.testclient import TestClient
 
 from poisonhound.core.alert import Alert
-from poisonhound.core.config import PoisonHoundConfig
+from poisonhound.core.config import (
+    ArpSpoofConfig,
+    DetectorsConfig,
+    Ipv6RogueRaConfig,
+    NameResolutionCanaryConfig,
+    PoisonHoundConfig,
+    RogueDhcpConfig,
+)
 from poisonhound.dashboard.app import create_app
 from poisonhound.dashboard.store import AlertStore
 
@@ -456,4 +463,161 @@ def test_alert_detail_hides_whitelist_button_for_arp_spoof(
 
     resp = client.get(f"/alerts/{alert_id}")
 
-    assert "whitelist" not in resp.text.lower()
+    assert "Add " not in resp.text
+    assert "Whitelisted" not in resp.text
+
+
+def _detectors_config(**overrides: object) -> DetectorsConfig:
+    defaults: dict[str, object] = {
+        "arp_spoof": ArpSpoofConfig(gateway_ip="192.168.1.1"),
+        "rogue_dhcp": RogueDhcpConfig(),
+        "ipv6_rogue_ra": Ipv6RogueRaConfig(),
+        "name_resolution_canary": NameResolutionCanaryConfig(),
+    }
+    defaults.update(overrides)
+    return DetectorsConfig(**defaults)  # type: ignore[arg-type]
+
+
+def test_alert_detail_shows_whitelisted_state_when_source_already_whitelisted(
+    config_factory: Callable[..., PoisonHoundConfig],
+    tmp_path: Path,
+    alert_factory: Callable[..., Alert],
+) -> None:
+    config = config_factory(
+        dashboard={"password": PASSWORD, "username": USERNAME},
+        detectors=_detectors_config(
+            rogue_dhcp=RogueDhcpConfig(authorized_servers=["192.168.1.200"])
+        ),
+    )
+    store = AlertStore(":memory:")
+    store.insert_or_update(
+        alert_factory(
+            detector_name="rogue_dhcp",
+            source_ip="192.168.1.200",
+            dedup_key="rogue_dhcp:192.168.1.200",
+        )
+    )
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(_base_config_yaml(), encoding="utf-8")
+    app = create_app(store, lambda: config, config_path)
+    client = TestClient(app)
+    _login(client)
+    alert_id = store.list_alerts()[0]["id"]
+
+    resp = client.get(f"/alerts/{alert_id}")
+
+    assert "Whitelisted" in resp.text
+    assert "Add 192.168.1.200 to authorized DHCP servers" not in resp.text
+    assert "Remove from whitelist" in resp.text
+
+
+def test_alerts_list_shows_whitelisted_badge(
+    config_factory: Callable[..., PoisonHoundConfig],
+    tmp_path: Path,
+    alert_factory: Callable[..., Alert],
+) -> None:
+    config = config_factory(
+        dashboard={"password": PASSWORD, "username": USERNAME},
+        detectors=_detectors_config(
+            rogue_dhcp=RogueDhcpConfig(authorized_servers=["192.168.1.200"])
+        ),
+    )
+    store = AlertStore(":memory:")
+    store.insert_or_update(
+        alert_factory(
+            title="Rogue DHCP alert",
+            detector_name="rogue_dhcp",
+            source_ip="192.168.1.200",
+            dedup_key="rogue_dhcp:192.168.1.200",
+        )
+    )
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(_base_config_yaml(), encoding="utf-8")
+    app = create_app(store, lambda: config, config_path)
+    client = TestClient(app)
+    _login(client)
+
+    resp = client.get("/")
+
+    assert "whitelisted" in resp.text.lower()
+
+
+def test_whitelist_page_lists_authorized_entries(
+    config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
+) -> None:
+    config = config_factory(
+        dashboard={"password": PASSWORD, "username": USERNAME},
+        detectors=_detectors_config(
+            rogue_dhcp=RogueDhcpConfig(authorized_servers=["192.168.1.200"]),
+            ipv6_rogue_ra=Ipv6RogueRaConfig(authorized_routers=["fe80::1"]),
+        ),
+    )
+    store = AlertStore(":memory:")
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(_base_config_yaml(), encoding="utf-8")
+    app = create_app(store, lambda: config, config_path)
+    client = TestClient(app)
+    _login(client)
+
+    resp = client.get("/whitelist")
+
+    assert resp.status_code == 200
+    assert "192.168.1.200" in resp.text
+    assert "fe80::1" in resp.text
+    assert "Nothing whitelisted here yet" in resp.text  # the empty dhcpv6 group
+
+
+def test_whitelist_remove_deletes_entry_and_triggers_reload(
+    config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
+) -> None:
+    real_config_path = tmp_path / "config.yaml"
+    real_config_path.write_text(
+        _base_config_yaml().replace(
+            "rogue_dhcp: {}", 'rogue_dhcp:\n    authorized_servers: ["192.168.1.200"]'
+        ),
+        encoding="utf-8",
+    )
+    config = config_factory(dashboard={"password": PASSWORD, "username": USERNAME})
+    store = AlertStore(":memory:")
+    reload_calls: list[int] = []
+    app = create_app(
+        store, lambda: config, real_config_path, reload_config=lambda: reload_calls.append(1)
+    )
+    client = TestClient(app)
+    _login(client)
+
+    resp = client.post(
+        "/whitelist/remove",
+        data={"detector": "rogue_dhcp", "field": "authorized_servers", "value": "192.168.1.200"},
+        follow_redirects=False,
+    )
+
+    assert resp.status_code == 303
+    assert resp.headers["location"] == "/whitelist"
+    assert reload_calls == [1]
+    saved = yaml.safe_load(real_config_path.read_text(encoding="utf-8"))
+    assert saved["detectors"]["rogue_dhcp"]["authorized_servers"] == []
+
+
+def test_whitelist_remove_nonexistent_value_is_noop(
+    config_factory: Callable[..., PoisonHoundConfig], tmp_path: Path
+) -> None:
+    real_config_path = tmp_path / "config.yaml"
+    real_config_path.write_text(_base_config_yaml(), encoding="utf-8")
+    config = config_factory(dashboard={"password": PASSWORD, "username": USERNAME})
+    store = AlertStore(":memory:")
+    reload_calls: list[int] = []
+    app = create_app(
+        store, lambda: config, real_config_path, reload_config=lambda: reload_calls.append(1)
+    )
+    client = TestClient(app)
+    _login(client)
+
+    resp = client.post(
+        "/whitelist/remove",
+        data={"detector": "rogue_dhcp", "field": "authorized_servers", "value": "10.0.0.1"},
+        follow_redirects=False,
+    )
+
+    assert resp.status_code == 303
+    assert reload_calls == []

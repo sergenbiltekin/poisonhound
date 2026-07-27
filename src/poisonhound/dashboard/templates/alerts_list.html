@@ -36,7 +36,12 @@
         {% for alert in alerts %}
           <tr>
             <td><span class="tag {{ alert.severity }}">{{ alert.severity }}</span></td>
-            <td><a href="/alerts/{{ alert.id }}">{{ alert.title }}</a></td>
+            <td>
+              <a href="/alerts/{{ alert.id }}">{{ alert.title }}</a>
+              {% if alert.id in whitelisted_ids %}
+                <span class="tag whitelisted">&check; whitelisted</span>
+              {% endif %}
+            </td>
             <td class="mono">{{ alert.detector_name }}</td>
             <td class="mono">{{ alert.source_ip or alert.source_mac }}</td>
             <td>{{ alert.occurrence_count }}</td>

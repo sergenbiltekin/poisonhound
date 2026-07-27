@@ -15,7 +15,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from poisonhound.core.config import PoisonHoundConfig
 from poisonhound.dashboard.deps import NotAuthenticatedError
-from poisonhound.dashboard.routes import alerts, auth, health, settings
+from poisonhound.dashboard.routes import alerts, auth, health, settings, whitelist
 from poisonhound.dashboard.store import AlertStore
 
 logger = logging.getLogger(__name__)
@@ -75,5 +75,6 @@ def create_app(
     app.include_router(health.router)
     app.include_router(alerts.router)
     app.include_router(settings.router)
+    app.include_router(whitelist.router)
 
     return app

@@ -5,7 +5,7 @@
 
   <h1><span class="tag {{ alert.severity }}">{{ alert.severity }}</span> {{ alert.title }}</h1>
 
-  {% if whitelisted %}
+  {% if just_whitelisted %}
     <div class="banner">Added to {{ whitelist_label }} and applied - no restart needed.</div>
   {% endif %}
 
@@ -20,7 +20,18 @@
       <dt>Last seen</dt><dd class="mono">{{ alert.last_seen }}</dd>
       <dt>Dedup key</dt><dd class="mono">{{ alert.dedup_key }}</dd>
     </dl>
-    {% if whitelist_label %}
+    {% if is_whitelisted %}
+      <div class="whitelisted-state" style="margin-top: 16px;">
+        <span class="tag whitelisted">&check; Whitelisted</span>
+        <span class="hint">{{ alert.source_ip }} is in {{ whitelist_label }} - new activity from it won't alert.</span>
+        <form method="post" action="/whitelist/remove" style="margin-top: 8px;">
+          <input type="hidden" name="detector" value="{{ whitelist_detector }}" />
+          <input type="hidden" name="field" value="{{ whitelist_field }}" />
+          <input type="hidden" name="value" value="{{ alert.source_ip }}" />
+          <button class="primary" type="submit">Remove from whitelist</button>
+        </form>
+      </div>
+    {% elif whitelist_label %}
       <form method="post" action="/alerts/{{ alert.id }}/whitelist" style="margin-top: 16px;">
         <button class="primary" type="submit">
           Add {{ alert.source_ip }} to {{ whitelist_label }}
